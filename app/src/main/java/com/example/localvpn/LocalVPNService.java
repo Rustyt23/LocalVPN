@@ -96,6 +96,7 @@ public class LocalVPNService extends VpnService
             builder.addAddress(VPN_ADDRESS, 32);
             builder.addRoute(VPN_ROUTE, 0);
             vpnInterface = builder.setSession(getString(R.string.app_name)).setConfigureIntent(pendingIntent).establish();
+            Log.w(TAG, "CVM started VPN");
         }
     }
 
@@ -169,7 +170,7 @@ public class LocalVPNService extends VpnService
         @Override
         public void run()
         {
-            Log.i(TAG, "Started");
+            Log.i(TAG, "CVM Started");
 
             FileChannel vpnInput = new FileInputStream(vpnFileDescriptor).getChannel();
             FileChannel vpnOutput = new FileOutputStream(vpnFileDescriptor).getChannel();
@@ -203,7 +204,7 @@ public class LocalVPNService extends VpnService
                         }
                         else
                         {
-                            Log.w(TAG, "Unknown packet type");
+                            Log.w(TAG, "CVM Unknown packet type");
                             Log.w(TAG, packet.ip4Header.toString());
                             dataSent = false;
                         }
@@ -236,7 +237,7 @@ public class LocalVPNService extends VpnService
             }
             catch (InterruptedException e)
             {
-                Log.i(TAG, "Stopping");
+                Log.i(TAG, "CVM Stopping");
             }
             catch (IOException e)
             {

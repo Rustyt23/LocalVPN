@@ -53,7 +53,7 @@ public class TCPOutput implements Runnable
     @Override
     public void run()
     {
-        Log.i(TAG, "Started");
+        Log.i(TAG, "CVM Started");
         try
         {
 
@@ -85,6 +85,7 @@ public class TCPOutput implements Runnable
 
                 String ipAndPort = destinationAddress.getHostAddress() + ":" +
                         destinationPort + ":" + sourcePort;
+                Log.w(TAG, "CVM ipAndPort = " +ipAndPort);
                 TCB tcb = TCB.getTCB(ipAndPort);
                 if (tcb == null)
                     initializeConnection(ipAndPort, destinationAddress, destinationPort,
@@ -106,7 +107,7 @@ public class TCPOutput implements Runnable
         }
         catch (InterruptedException e)
         {
-            Log.i(TAG, "Stopping");
+            Log.i(TAG, "CVM Stopping");
         }
         catch (IOException e)
         {
