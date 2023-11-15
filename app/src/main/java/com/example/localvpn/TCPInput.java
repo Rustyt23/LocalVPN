@@ -1,18 +1,18 @@
 /*
-** Copyright 2015, Mohamed Naufal
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-*/
+ ** Copyright 2015, Mohamed Naufal
+ **
+ ** Licensed under the Apache License, Version 2.0 (the "License");
+ ** you may not use this file except in compliance with the License.
+ ** You may obtain a copy of the License at
+ **
+ **     http://www.apache.org/licenses/LICENSE-2.0
+ **
+ ** Unless required by applicable law or agreed to in writing, software
+ ** distributed under the License is distributed on an "AS IS" BASIS,
+ ** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ ** See the License for the specific language governing permissions and
+ ** limitations under the License.
+ */
 
 package com.example.localvpn;
 
@@ -26,6 +26,7 @@ import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.example.localvpn.TCB.TCBStatus;
 
@@ -36,11 +37,14 @@ public class TCPInput implements Runnable
 
     private ConcurrentLinkedQueue<ByteBuffer> outputQueue;
     private Selector selector;
+    private ReentrantLock tcpSelectorLock;
 
-    public TCPInput(ConcurrentLinkedQueue<ByteBuffer> outputQueue, Selector selector)
+    public TCPInput(ConcurrentLinkedQueue<ByteBuffer> outputQueue, Selector selector, ReentrantLock tcpSelectorLock)
     {
         this.outputQueue = outputQueue;
         this.selector = selector;
+        this.tcpSelectorLock=tcpSelectorLock;
+
     }
 
     @Override
@@ -51,6 +55,9 @@ public class TCPInput implements Runnable
             Log.d(TAG, "Started");
             while (!Thread.interrupted())
             {
+
+                tcpSelectorLock.lock();
+                tcpSelectorLock.unlock();
                 int readyChannels = selector.select();
 
                 if (readyChannels == 0) {
@@ -120,12 +127,13 @@ public class TCPInput implements Runnable
         keyIterator.remove();
         ByteBuffer receiveBuffer = ByteBufferPool.acquire();
         // Leave space for the header
-        receiveBuffer.position(HEADER_SIZE);
+//        receiveBuffer.position(HEADER_SIZE);
 
         TCB tcb = (TCB) key.attachment();
         synchronized (tcb)
         {
             Packet referencePacket = tcb.referencePacket;
+            receiveBuffer.position(referencePacket.IP_TRAN_SIZE);
             SocketChannel inputChannel = (SocketChannel) key.channel();
             int readBytes;
             try
@@ -163,7 +171,7 @@ public class TCPInput implements Runnable
                 referencePacket.updateTCPBuffer(receiveBuffer, (byte) (Packet.TCPHeader.PSH | Packet.TCPHeader.ACK),
                         tcb.mySequenceNum, tcb.myAcknowledgementNum, readBytes);
                 tcb.mySequenceNum += readBytes; // Next sequence number
-                receiveBuffer.position(HEADER_SIZE + readBytes);
+                receiveBuffer.position(referencePacket.IP_TRAN_SIZE + readBytes);
             }
         }
         outputQueue.offer(receiveBuffer);

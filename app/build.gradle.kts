@@ -41,6 +41,8 @@ dependencies {
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 
+    implementation("org.slf4j:slf4j-api:1.7.36") // Use the latest version
+    implementation("org.slf4j:slf4j-simple:1.7.36") // Use the latest version
     implementation("dnsjava:dnsjava:3.5.2")
 
 }
