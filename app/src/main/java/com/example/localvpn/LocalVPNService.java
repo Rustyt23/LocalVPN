@@ -20,12 +20,10 @@ import static com.example.localvpn.LogUtils.context;
 
 import android.app.PendingIntent;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.net.VpnService;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
-import com.example.localvpn.LogUtils;
 
 import java.io.Closeable;
 import java.io.FileDescriptor;
@@ -69,7 +67,6 @@ public class LocalVPNService extends VpnService
 
     private Selector udpSelector;
     private Selector tcpSelector;
-
     @Override
     public void onCreate()
     {
@@ -110,14 +107,13 @@ public class LocalVPNService extends VpnService
         {
             Builder builder = new Builder();
             builder.addAddress(VPN_ADDRESS, 32);
-            builder.addAddress(VPN_ADDRESS6, 128);
+//            builder.addAddress(VPN_ADDRESS6, 128);
             builder.addRoute(VPN_ROUTE, 0);
-            builder.addRoute(VPN_ROUTE6, 0);
-            builder.addDnsServer(VPN_DNS6);
+//            builder.addRoute(VPN_ROUTE6, 0);
+//            builder.addDnsServer(VPN_DNS6);
             builder.addDnsServer(VPN_DNS4);
             vpnInterface = builder.setSession(getString(R.string.app_name)).setConfigureIntent(pendingIntent).establish();
             Log.w(TAG, "LocalVPN started VPN");
-            new DnsResolverTask().execute(null, null);
         }
     }
 

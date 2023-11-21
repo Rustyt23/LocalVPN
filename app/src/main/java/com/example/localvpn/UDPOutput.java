@@ -17,6 +17,14 @@
 package com.example.localvpn;
 
 
+import android.util.Log;
+
+import org.xbill.DNS.DClass;
+import org.xbill.DNS.DohResolver;
+import org.xbill.DNS.Message;
+import org.xbill.DNS.Name;
+import org.xbill.DNS.Record;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -38,7 +46,7 @@ public class UDPOutput implements Runnable
     private ConcurrentLinkedQueue<Packet> inputQueue;
     private ConcurrentLinkedQueue<ByteBuffer> outputQueue;
     private Selector selector;
-
+    private DohResolver dohResolver;
     private StringBuilder stringBuild;
     private static final int MAX_CACHE_SIZE = 50;
     private LRUCache<String, DatagramChannel> channelCache =
@@ -64,7 +72,6 @@ public class UDPOutput implements Runnable
     public void run() {
         LogUtils.i(TAG, "Started");
         try {
-
             while (!Thread.interrupted()) {
                 Packet currentPacket = inputQueue.poll();
                 if (currentPacket == null){
@@ -121,6 +128,7 @@ public class UDPOutput implements Runnable
                 }
                 ByteBufferPool.release(currentPacket.backingBuffer);
             }
+//            Log.w(TAG,"Thread interrupted");
         }
         catch (InterruptedException e)
         {
