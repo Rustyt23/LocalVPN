@@ -24,11 +24,23 @@ import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class DnsChange {
-
     static String TAG = DnsChange.class.getSimpleName();
 
+    public static String extractIpAddress(String dnsResponse) {
+        Pattern ipPattern = Pattern.compile("\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b");
+
+        Matcher matcher = ipPattern.matcher(dnsResponse);
+        String ipAddress = null;
+        while (matcher.find()) {
+            ipAddress = matcher.group();
+        }
+
+        return ipAddress;
+    }
     public static String DOHresolver(String name) {
 
         DohResolver resolver = new DohResolver("https://doh.accelerint.net/dns-query");
@@ -39,12 +51,10 @@ public class DnsChange {
         org.xbill.DNS.Message response;
         try {
             response = resolver.send(query);
-            String ip = response.sectionToString(1);
-            String[] parts = ip.split("A");
-            String part1 = parts[0];
-            String part2 = parts[1];
-            Log.w(TAG, "Response \nquery =" + part1 + ", \n answer =" + part2.trim());
-            return part2.trim();
+            String ips = response.sectionToString(1);
+            String ip=extractIpAddress(ips);
+            Log.w(TAG,"IP extracted from response: "+ip);
+            return ip;
         } catch (IOException e) {
             e.printStackTrace();
             return "empty";// Log the exception for debugging
