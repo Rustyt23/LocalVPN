@@ -90,6 +90,7 @@ public class DnsChange {
                 DOMAINS_IP_MAPS.put(query_string, ip);
                 if (ip.equals("empty")) {
                     Log.w(TAG, "LocalDNS is used for "+query_string);
+
                     return null;
                 }
 
@@ -110,6 +111,7 @@ public class DnsChange {
                 return packet_buffer;
             } else return packet_buffer;
         } catch (Exception e) {
+            e.printStackTrace();
             Log.d(TAG, "dns hook error", e);
             return null;
         }

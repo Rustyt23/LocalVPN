@@ -19,7 +19,11 @@ package com.example.localvpn;
 import static com.example.localvpn.LogUtils.context;
 
 import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.LinkProperties;
+import android.net.Network;
 import android.net.VpnService;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
@@ -30,6 +34,7 @@ import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.Selector;
@@ -111,12 +116,44 @@ public class LocalVPNService extends VpnService
             builder.addRoute(VPN_ROUTE, 0);
 //            builder.addRoute(VPN_ROUTE6, 0);
 //            builder.addDnsServer(VPN_DNS6);
-            builder.addDnsServer(VPN_DNS4);
+            String ip=getDnsServers(this);
+            if(ip==null)
+            {
+                Log.w(TAG,"SystemDNS failed to fetch the IP");
+                builder.addDnsServer(VPN_DNS4);
+            }
+            else {
+                Log.w(TAG,"SystemDNS succeed to fetch the IP");
+                builder.addDnsServer(ip);
+            }
             vpnInterface = builder.setSession(getString(R.string.app_name)).setConfigureIntent(pendingIntent).establish();
             Log.w(TAG, "LocalVPN started VPN");
+            getDnsServers(this);
         }
     }
 
+    public static String getDnsServers(Context context) {
+        ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        if (cm != null) {
+            Network network = cm.getActiveNetwork();
+            if (network != null) {
+                LinkProperties linkProperties = cm.getLinkProperties(network);
+                if (linkProperties != null) {
+                    for (InetAddress dnsServer : linkProperties.getDnsServers()) {
+                        if (dnsServer instanceof java.net.Inet4Address) {
+                            Log.d("DnsHelper", "DNS ipv4 Server: " + dnsServer.getHostAddress());
+                            return dnsServer.getHostAddress();
+                        }
+
+
+
+                    }
+                }
+            }
+        }
+        return null;
+    }
     @Override
     public int onStartCommand(Intent intent, int flags, int startId)
     {
