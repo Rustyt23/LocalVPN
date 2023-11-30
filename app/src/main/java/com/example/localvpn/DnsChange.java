@@ -56,14 +56,17 @@ public class DnsChange {
             String ips = response.sectionToString(1);
             String ip=extractIpAddress(ips);
             Log.w(TAG,"IP extracted from response: "+ip);
+            if(ip==null)
+                return "empty";
             return ip;
         } catch (IOException e) {
             e.printStackTrace();
+            Log.w(TAG,"IP extracted was Invalid ");
             return "empty";// Log the exception for debugging
         }
         catch (NullPointerException n) {
             n.printStackTrace();
-            return null;
+            return "empty";
         }
 
     }
@@ -85,16 +88,21 @@ public class DnsChange {
 
             if (type == Type.A){
                 DOMAINS_IP_MAPS = DOMAINS_IP_MAPS4;
-                if(DOMAINS_IP_MAPS.containsKey(query_string))
-                    ip=DOMAINS_IP_MAPS.get(query_string);
-                else ip= DOHresolver(query_string);
-
-                if (ip.equals("empty")) {
-                    Log.w(TAG, "Query is forwarded through LocalDNS for "+query_string);
-                    return null;
+                if(DOMAINS_IP_MAPS.containsKey(query_string)) {
+                    ip = DOMAINS_IP_MAPS.get(query_string);
+                    Log.w(TAG, "Cache was called to resolve for "+query_string);
+                }
+                else {
+                    ip = DOHresolver(query_string);
+                    if (ip.equals("empty")) {
+                        Log.w(TAG, "Query is forwarded through LocalDNS for "+query_string);
+                        return null;
+                    }
+                    DOMAINS_IP_MAPS4.put(query_string,ip);
+                    Log.w(TAG, "Cached response for "+query_string+ "with answer: "+ip);
                 }
 
-                Log.d(TAG, "query: " + question.getType() + " :" + query_string);
+                Log.d(TAG, "query: " + question.getType() + " : " + query_string);
                 InetAddress address = Address.getByAddress(ip);
                 Record record;
                 record = new ARecord(query_domain, 1, 86400, address);
@@ -109,7 +117,7 @@ public class DnsChange {
                 packet_buffer.position(packet_buffer.limit());
                 Log.d(TAG, "hit: " + question.getType() + " :" + query_domain + ": " + address.getHostName());
                 return packet_buffer;
-            } else return packet_buffer;
+            } else return null;
         } catch (Exception e) {
             e.printStackTrace();
             Log.d(TAG, "dns hook error", e);

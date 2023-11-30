@@ -267,6 +267,10 @@ public class LocalVPNService extends VpnService
                             deviceToNetworkUDPQueue.offer(packet);
                         } else if (packet.isTCP()) {
                             deviceToNetworkTCPQueue.offer(packet);
+                        } else if (packet.isICMP()) {
+                            LogUtils.d(TAG, "ICMP packet type");
+//                            dataSent = true;
+
                         } else {
                             LogUtils.w(TAG, "Unknown packet type");
                             dataSent = false;
@@ -292,8 +296,10 @@ public class LocalVPNService extends VpnService
 
                     // TODO: Sleep-looping is not very battery-friendly, consider blocking instead
                     // Confirm if throughput with ConcurrentQueue is really higher compared to BlockingQueue
-                    if (!dataSent && !dataReceived)
+                    if (!dataSent && !dataReceived) { // dataSent is false, dataReceived is false
                         Thread.sleep(11);
+//                        Log.d(TAG,"No data Sent or Received");
+                    }
                 }
             } catch (InterruptedException e) {
                 LogUtils.i(TAG, "Stopping");

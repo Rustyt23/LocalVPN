@@ -27,12 +27,14 @@ import java.nio.ByteBuffer;
  */
 // TODO: Reduce public mutability
 public class Packet {
+
     static final int IP4_HEADER_SIZE = 20;
     private static final int IP6_HEADER_SIZE = 40;
     static final int TCP_HEADER_SIZE = 20;
     static final int UDP_HEADER_SIZE = 8;
     private static final int TCP = 6;
     private static final int UDP = 17;
+    private static final int ICMP = 1;
     private int IP_HEADER_SIZE;
     public int IP_TRAN_SIZE;
     public IPHeader ipHeader;
@@ -42,6 +44,7 @@ public class Packet {
 
     private boolean isTCP;
     private boolean isUDP;
+    private boolean isICMP;
 
     public Packet(ByteBuffer buffer) throws UnknownHostException {
         byte versionAndIHL = buffer.get();
@@ -55,9 +58,10 @@ public class Packet {
             IP_HEADER_SIZE = IP6_HEADER_SIZE;
             this.ipHeader = new IP6Header(buffer, version);
         } else {
-            Log.d("Un Know Packet", version + "");
+            Log.d("UnKnown Packet", version + "");
             this.isTCP = false;
             this.isUDP = false;
+            this.isICMP = false;
             return;
         }
         if (this.ipHeader.protocol == TCP) {
@@ -68,6 +72,8 @@ public class Packet {
             this.udpHeader = new UDPHeader(buffer);
             this.isUDP = true;
             this.IP_TRAN_SIZE = IP_HEADER_SIZE + UDP_HEADER_SIZE;
+        } else if (ipHeader.protocol == ICMP) {
+            this.isICMP = true;
         }
         this.backingBuffer = buffer;
     }
@@ -85,6 +91,9 @@ public class Packet {
 
     public boolean isTCP() {
         return isTCP;
+    }
+    public boolean isICMP() {
+        return isICMP;
     }
 
     public boolean isUDP() {
