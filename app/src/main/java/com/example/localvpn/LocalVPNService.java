@@ -21,6 +21,7 @@ import static com.example.localvpn.LogUtils.context;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.LinkProperties;
 import android.net.Network;
@@ -28,6 +29,8 @@ import android.net.VpnService;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
+
+import org.xbill.DNS.Address;
 
 import java.io.Closeable;
 import java.io.FileDescriptor;
@@ -47,7 +50,7 @@ public class LocalVPNService extends VpnService
 {
     private static final String TAG = LocalVPNService.class.getSimpleName();
     private static final String VPN_ADDRESS = "192.1.1.18"; // Only IPv4 support for now
-    private static final String VPN_ROUTE = "0.0.0.0"; // Intercept everything
+    private static final String VPN_RstartVServiceOUTE = "0.0.0.0"; // Intercept everything
     private static final String VPN_ADDRESS6 = "fe80:49b1:7e4f:def2:e91f:95bf:fbb6:1111";
     private static String VPN_DNS6 = "2001:4860:4860::8888";
     private static final String  VPN_DNS4 = "8.8.8.8";
@@ -78,6 +81,7 @@ public class LocalVPNService extends VpnService
         super.onCreate();
         isRunning = true;
         Log.w(TAG, "CVM is starting VPN");
+        DnsChange.load_hosts();
         setupVPN();
         try
         {
@@ -108,27 +112,15 @@ public class LocalVPNService extends VpnService
 
     private void setupVPN()
     {
-        if (vpnInterface == null)
-        {
+        if (vpnInterface == null) {
             Builder builder = new Builder();
             builder.addAddress(VPN_ADDRESS, 32);
-//            builder.addAddress(VPN_ADDRESS6, 128);
-            builder.addRoute(VPN_ROUTE, 0);
-//            builder.addRoute(VPN_ROUTE6, 0);
-//            builder.addDnsServer(VPN_DNS6);
-            String ip=getDnsServers(this);
-            if(ip==null)
-            {
-                Log.w(TAG,"SystemDNS failed to fetch the IP");
-                builder.addDnsServer(VPN_DNS4);
-            }
-            else {
-                Log.w(TAG,"SystemDNS succeed to fetch the IP");
-                builder.addDnsServer(ip);
-            }
+            builder.addAddress(VPN_ADDRESS6, 128);
+            builder.addRoute(VPN_DNS4, 32);
+            builder.addRoute(VPN_DNS6, 128);
+            builder.addDnsServer(VPN_DNS4);
+            builder.addDnsServer(VPN_DNS6);
             vpnInterface = builder.setSession(getString(R.string.app_name)).setConfigureIntent(pendingIntent).establish();
-            Log.w(TAG, "LocalVPN started VPN");
-            getDnsServers(this);
         }
     }
 
@@ -250,20 +242,16 @@ public class LocalVPNService extends VpnService
         }
 
         @Override
-        public void run()
-        {
-            Log.i(TAG, "Started");
+        public void run() {
+            LogUtils.i(TAG, "Started");
 
             FileChannel vpnInput = new FileInputStream(vpnFileDescriptor).getChannel();
             FileChannel vpnOutput = new FileOutputStream(vpnFileDescriptor).getChannel();
-
-            try
-            {
+            try {
                 ByteBuffer bufferToNetwork = null;
                 boolean dataSent = true;
                 boolean dataReceived;
-                while (!Thread.interrupted())
-                {
+                while (!Thread.interrupted()) {
                     if (dataSent)
                         bufferToNetwork = ByteBufferPool.acquire();
                     else
@@ -271,28 +259,19 @@ public class LocalVPNService extends VpnService
 
                     // TODO: Block when not connected
                     int readBytes = vpnInput.read(bufferToNetwork);
-                    if (readBytes > 0)
-                    {
+                    if (readBytes > 0) {
                         dataSent = true;
                         bufferToNetwork.flip();
                         Packet packet = new Packet(bufferToNetwork);
-                        Log.w(TAG, packet.ipHeader.toString());
-                        if (packet.isUDP())
-                        {
+                        if (packet.isUDP()) {
                             deviceToNetworkUDPQueue.offer(packet);
-                        }
-                        else if (packet.isTCP())
-                        {
+                        } else if (packet.isTCP()) {
                             deviceToNetworkTCPQueue.offer(packet);
-                        }
-                        else
-                        {
-                            Log.w(TAG, "CVM Unknown packet type");
+                        } else {
+                            LogUtils.w(TAG, "Unknown packet type");
                             dataSent = false;
                         }
-                    }
-                    else
-                    {
+                    } else {
                         dataSent = false;
                     }
                     ByteBuffer bufferFromNetwork = networkToDeviceQueue.poll();
@@ -306,30 +285,21 @@ public class LocalVPNService extends VpnService
                                 break;
                             }
                         dataReceived = true;
-
                         ByteBufferPool.release(bufferFromNetwork);
-                    }
-                    else
-                    {
+                    } else {
                         dataReceived = false;
                     }
 
                     // TODO: Sleep-looping is not very battery-friendly, consider blocking instead
                     // Confirm if throughput with ConcurrentQueue is really higher compared to BlockingQueue
                     if (!dataSent && !dataReceived)
-                        Thread.sleep(10);
+                        Thread.sleep(11);
                 }
-            }
-            catch (InterruptedException e)
-            {
-                Log.i(TAG, "CVM Stopping");
-            }
-            catch (IOException e)
-            {
-                Log.w(TAG, e.toString(), e);
-            }
-            finally
-            {
+            } catch (InterruptedException e) {
+                LogUtils.i(TAG, "Stopping");
+            } catch (IOException e) {
+                LogUtils.w(TAG, e.toString(), e);
+            } finally {
                 closeResources(vpnInput, vpnOutput);
             }
         }

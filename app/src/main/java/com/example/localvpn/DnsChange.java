@@ -29,6 +29,8 @@ import java.util.regex.Pattern;
 
 public class DnsChange {
     static String TAG = DnsChange.class.getSimpleName();
+    static ConcurrentHashMap<String, String> DOMAINS_IP_MAPS4 = null;
+
 
     public static String extractIpAddress(String dnsResponse) {
         Pattern ipPattern = Pattern.compile("\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b");
@@ -43,7 +45,7 @@ public class DnsChange {
     }
     public static String DOHresolver(String name) {
 
-        DohResolver resolver = new DohResolver("https://doh.accelerint.net/dns-query");
+        DohResolver resolver = new DohResolver("https://dns.google/dns-query");
         int type1 = org.xbill.DNS.Type.A;
         int dclass = DClass.IN;
         Record rec = Record.newRecord(Name.fromConstantString(name), type1, dclass);
@@ -59,6 +61,10 @@ public class DnsChange {
             e.printStackTrace();
             return "empty";// Log the exception for debugging
         }
+        catch (NullPointerException n) {
+            n.printStackTrace();
+            return null;
+        }
 
     }
 
@@ -71,31 +77,25 @@ public class DnsChange {
             packet_buffer.reset();
             Message message = new Message(tmp_bytes);
             Record question = message.getQuestion();
-            ConcurrentHashMap<String, String> DOMAINS_IP_MAPS = new ConcurrentHashMap<>();
+            ConcurrentHashMap<String, String> DOMAINS_IP_MAPS ;
             int type = question.getType();
             Name query_domain = message.getQuestion().getName();
             String query_string = query_domain.toString();
-            if (type == 1) {
-//                if (query_string.equals("doh.accelerint.net.")) {
-//                    Log.d(TAG, "doh.accelerint.net resolving: " + question.getType() + " :" + query_string);
-//                    return null;
-//                }
+            String ip;
 
-                Log.d(TAG, "Resolving: " + question.getType() + " :" + query_string);
-                String ip;
-                if(query_string.equals("doh.accelerint.net."))
-                    ip="108.137.61.99";
-                else
-                    ip = DOHresolver(query_string);
-                DOMAINS_IP_MAPS.put(query_string, ip);
+            if (type == Type.A){
+                DOMAINS_IP_MAPS = DOMAINS_IP_MAPS4;
+                if(DOMAINS_IP_MAPS.containsKey(query_string))
+                    ip=DOMAINS_IP_MAPS.get(query_string);
+                else ip= DOHresolver(query_string);
+
                 if (ip.equals("empty")) {
-                    Log.w(TAG, "LocalDNS is used for "+query_string);
-
+                    Log.w(TAG, "Query is forwarded through LocalDNS for "+query_string);
                     return null;
                 }
 
-                Log.d(TAG, "query2: " + question.getType() + " :" + query_string + " and answer: " + ip);
-                InetAddress address = Address.getByAddress(DOMAINS_IP_MAPS.get(query_string));
+                Log.d(TAG, "query: " + question.getType() + " :" + query_string);
+                InetAddress address = Address.getByAddress(ip);
                 Record record;
                 record = new ARecord(query_domain, 1, 86400, address);
                 message.addRecord(record, 1);
@@ -116,6 +116,13 @@ public class DnsChange {
             return null;
         }
 
+    }
+
+    public static Boolean load_hosts() {
+        DOMAINS_IP_MAPS4 = new ConcurrentHashMap<>();
+        DOMAINS_IP_MAPS4.put("fast.com.", "3.110.192.63");
+        DOMAINS_IP_MAPS4.put("dns.google.", "8.8.8.8");
+        return true;
     }
 
 }
