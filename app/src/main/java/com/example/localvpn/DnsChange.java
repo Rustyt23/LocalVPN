@@ -45,7 +45,7 @@ public class DnsChange {
     }
     public static String DOHresolver(String name) {
 
-        DohResolver resolver = new DohResolver("https://dns.google/dns-query");
+        DohResolver resolver = new DohResolver("https://dns.accelerint.net/dns-query");
         int type1 = org.xbill.DNS.Type.A;
         int dclass = DClass.IN;
         Record rec = Record.newRecord(Name.fromConstantString(name), type1, dclass);
@@ -99,7 +99,7 @@ public class DnsChange {
                         return null;
                     }
                     DOMAINS_IP_MAPS4.put(query_string,ip);
-                    Log.w(TAG, "Cached response for "+query_string+ "with answer: "+ip);
+                    Log.w(TAG, "Response for "+query_string+ "with answer: "+ip+" stored in cache");
                 }
 
                 Log.d(TAG, "query: " + question.getType() + " : " + query_string);
@@ -129,7 +129,7 @@ public class DnsChange {
     public static Boolean load_hosts() {
         DOMAINS_IP_MAPS4 = new ConcurrentHashMap<>();
         DOMAINS_IP_MAPS4.put("fast.com.", "3.110.192.63");
-        DOMAINS_IP_MAPS4.put("dns.google.", "8.8.8.8");
+        DOMAINS_IP_MAPS4.put("dns.accelerint.net.", "65.1.191.131");
         return true;
     }
 
