@@ -50,7 +50,7 @@ public class LocalVPNService extends VpnService
 {
     private static final String TAG = LocalVPNService.class.getSimpleName();
     private static final String VPN_ADDRESS = "192.1.1.18"; // Only IPv4 support for now
-    private static final String VPN_RstartVServiceOUTE = "0.0.0.0"; // Intercept everything
+    private static final String VPN_RstartVServiceOUTE = "8.8.8.8"; // Intercept everything
     private static final String VPN_ADDRESS6 = "fe80:49b1:7e4f:def2:e91f:95bf:fbb6:1111";
     private static String VPN_DNS6 = "2001:4860:4860::8888";
     private static final String  VPN_DNS4 = "8.8.8.8";
